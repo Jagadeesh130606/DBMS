@@ -534,3 +534,4 @@ export const AUTHORS_SEED: AuthorSeed[] = [
     external_profiles: { google_scholar: 'https://scholar.google.com/citations?user=T_2b7qQAAAAJ', orcid: '0000-0001-1234-5678' },
   },
 ];
+

@@ -74,3 +74,4 @@ export const CitationDocument: Model<ICitationDocument> =
   mongoose.model<ICitationDocument>('CitationDocument', CitationDocumentSchema);
 
 export default CitationDocument;
+
