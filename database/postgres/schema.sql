@@ -15,6 +15,8 @@ DROP TABLE IF EXISTS PAPER_AUTHOR CASCADE;
 DROP TABLE IF EXISTS PAPER_EMBEDDINGS CASCADE;
 DROP TABLE IF EXISTS RESEARCH_AREA CASCADE;
 DROP TABLE IF EXISTS RESEARCH_PAPER CASCADE;
+DROP TABLE IF EXISTS CONFERENCE CASCADE;
+DROP TABLE IF EXISTS JOURNAL CASCADE;
 DROP TABLE IF EXISTS AUTHORS CASCADE;
 DROP TABLE IF EXISTS USERS CASCADE;
 
@@ -43,7 +45,29 @@ CREATE TABLE AUTHORS (
 );
 
 -- -------------------------------------------------------------------------
--- TABLE 3: RESEARCH_PAPER
+-- TABLE 3: JOURNAL
+-- Purpose: Academic journals, publishers, and standard ISSN numbers
+-- -------------------------------------------------------------------------
+CREATE TABLE JOURNAL (
+    journal_id SERIAL PRIMARY KEY,
+    journal_name VARCHAR(255) NOT NULL UNIQUE,
+    publisher VARCHAR(255) NOT NULL,
+    issn VARCHAR(30) UNIQUE NOT NULL
+);
+
+-- -------------------------------------------------------------------------
+-- TABLE 4: CONFERENCE
+-- Purpose: Academic conferences, venues, host cities, and editions
+-- -------------------------------------------------------------------------
+CREATE TABLE CONFERENCE (
+    conference_id SERIAL PRIMARY KEY,
+    conference_name VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    year INTEGER NOT NULL CHECK (year >= 1950 AND year <= 2100)
+);
+
+-- -------------------------------------------------------------------------
+-- TABLE 5: RESEARCH_PAPER
 -- Purpose: Core relational entity storing structured paper metadata
 -- -------------------------------------------------------------------------
 CREATE TABLE RESEARCH_PAPER (
@@ -54,6 +78,9 @@ CREATE TABLE RESEARCH_PAPER (
     publication_date DATE NOT NULL,
     citation_count INTEGER NOT NULL DEFAULT 0 CHECK (citation_count >= 0),
     source VARCHAR(255) NOT NULL,
+    source_type VARCHAR(50) DEFAULT 'CONFERENCE' CHECK (source_type IN ('JOURNAL', 'CONFERENCE', 'PREPRINT')),
+    journal_id INTEGER REFERENCES JOURNAL(journal_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    conference_id INTEGER REFERENCES CONFERENCE(conference_id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

@@ -1,95 +1,147 @@
-# Relational Database Schema & Data Dictionary
+# Formal Relational Schema Documentation
 
-## 1. Relational Schema (Third Normal Form - 3NF)
-
-Every relational entity in the system satisfies Third Normal Form (3NF):
-- **1NF**: All column attributes are atomic. Repeating groups (authors, research areas, citations) are resolved into associative intersection tables (`PAPER_AUTHOR`, `PAPER_AREA`, `CITATION`).
-- **2NF**: No non-key attribute is partially dependent on any component of a composite primary key. In `PAPER_AUTHOR(paper_id, author_id)`, `author_order` depends on the exact combination of paper and author.
-- **3NF**: No transitive functional dependencies exist. Non-key attributes depend solely on the primary candidate key.
+**System Title:** Research Paper Discovery and Semantic Recommendation System  
+**Engine:** PostgreSQL 16 (with pgvector extension) & Embedded PGlite  
+**Normalization Level:** 3NF / BCNF Fully Normalized
 
 ---
 
-## 2. Table Definitions
+## 1. Relational Table Definitions (12 Tables)
 
-### 1. `USERS`
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `user_id` | `SERIAL` | NO | `PRIMARY KEY` | Unique synthetic identifier |
-| `name` | `VARCHAR(150)` | NO | None | Full user name |
-| `email` | `VARCHAR(255)` | NO | `UNIQUE` | User login and email address |
-| `password_hash` | `VARCHAR(255)` | NO | None | Bcrypt password hash |
-| `role` | `VARCHAR(20)` | NO | `CHECK (role IN ('ADMIN','STUDENT'))` | Role-based authorization |
-| `created_at` | `TIMESTAMPTZ` | NO | `DEFAULT CURRENT_TIMESTAMP` | Account creation timestamp |
+### Table 1: `USERS`
+```sql
+CREATE TABLE USERS (
+    user_id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'STUDENT')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+```
 
-### 2. `AUTHORS`
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `author_id` | `SERIAL` | NO | `PRIMARY KEY` | Unique author identifier |
-| `name` | `VARCHAR(150)` | NO | None | Academic scholar full name |
-| `affiliation` | `VARCHAR(255)` | YES | None | University or laboratory |
-| `email` | `VARCHAR(255)` | YES | None | Academic contact email |
+### Table 2: `AUTHORS`
+```sql
+CREATE TABLE AUTHORS (
+    author_id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    affiliation VARCHAR(255),
+    email VARCHAR(255)
+);
+```
 
-### 3. `RESEARCH_PAPER`
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `paper_id` | `SERIAL` | NO | `PRIMARY KEY` | Core paper identifier |
-| `title` | `VARCHAR(500)` | NO | None | Full academic paper title |
-| `abstract` | `TEXT` | NO | None | Complete paper abstract |
-| `doi` | `VARCHAR(100)` | NO | `UNIQUE` | Digital Object Identifier |
-| `publication_date` | `DATE` | NO | None | Official publication date |
-| `citation_count` | `INTEGER` | NO | `DEFAULT 0, CHECK (citation_count >= 0)` | Trigger-maintained count |
-| `source` | `VARCHAR(255)` | NO | None | Conference or journal source |
-| `created_at` | `TIMESTAMPTZ` | NO | `DEFAULT CURRENT_TIMESTAMP` | Ingestion timestamp |
+### Table 3: `JOURNAL`
+```sql
+CREATE TABLE JOURNAL (
+    journal_id SERIAL PRIMARY KEY,
+    journal_name VARCHAR(255) NOT NULL UNIQUE,
+    publisher VARCHAR(255) NOT NULL,
+    issn VARCHAR(30) UNIQUE NOT NULL
+);
+```
 
-### 4. `RESEARCH_AREA`
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `area_id` | `SERIAL` | NO | `PRIMARY KEY` | Unique area identifier |
-| `area_name` | `VARCHAR(100)` | NO | `UNIQUE` | Domain title |
-| `description` | `TEXT` | YES | None | Taxonomy description |
+### Table 4: `CONFERENCE`
+```sql
+CREATE TABLE CONFERENCE (
+    conference_id SERIAL PRIMARY KEY,
+    conference_name VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    year INTEGER NOT NULL CHECK (year >= 1950 AND year <= 2100)
+);
+```
 
-### 5. `PAPER_AUTHOR` (Composite Associative Table)
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `paper_id` | `INTEGER` | NO | `REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE` | Composite PK part 1 |
-| `author_id` | `INTEGER` | NO | `REFERENCES AUTHORS(author_id) ON DELETE CASCADE` | Composite PK part 2 |
-| `author_order` | `INTEGER` | NO | `DEFAULT 1, CHECK (author_order > 0)` | Authorship sequence |
+### Table 5: `RESEARCH_PAPER`
+```sql
+CREATE TABLE RESEARCH_PAPER (
+    paper_id SERIAL PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    abstract TEXT NOT NULL,
+    doi VARCHAR(100) NOT NULL UNIQUE,
+    publication_date DATE NOT NULL,
+    citation_count INTEGER NOT NULL DEFAULT 0 CHECK (citation_count >= 0),
+    source VARCHAR(255) NOT NULL,
+    source_type VARCHAR(50) DEFAULT 'CONFERENCE' CHECK (source_type IN ('JOURNAL', 'CONFERENCE', 'PREPRINT')),
+    journal_id INTEGER REFERENCES JOURNAL(journal_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    conference_id INTEGER REFERENCES CONFERENCE(conference_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+```
 
-### 6. `PAPER_AREA` (Composite Associative Table)
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `paper_id` | `INTEGER` | NO | `REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE` | Composite PK part 1 |
-| `area_id` | `INTEGER` | NO | `REFERENCES RESEARCH_AREA(area_id) ON DELETE CASCADE` | Composite PK part 2 |
+### Table 6: `RESEARCH_AREA`
+```sql
+CREATE TABLE RESEARCH_AREA (
+    area_id SERIAL PRIMARY KEY,
+    area_name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT
+);
+```
 
-### 7. `BOOKMARK` (Composite User Saved Papers)
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `user_id` | `INTEGER` | NO | `REFERENCES USERS(user_id) ON DELETE CASCADE` | Composite PK part 1 |
-| `paper_id` | `INTEGER` | NO | `REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE` | Composite PK part 2 |
-| `created_at` | `TIMESTAMPTZ` | NO | `DEFAULT CURRENT_TIMESTAMP` | Bookmark timestamp |
+### Table 7: `PAPER_AUTHOR` (M:N Junction)
+```sql
+CREATE TABLE PAPER_AUTHOR (
+    paper_id INTEGER NOT NULL REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    author_id INTEGER NOT NULL REFERENCES AUTHORS(author_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    author_order INTEGER NOT NULL DEFAULT 1 CHECK (author_order > 0),
+    PRIMARY KEY (paper_id, author_id)
+);
+```
 
-### 8. `SEARCH_HISTORY`
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `search_id` | `SERIAL` | NO | `PRIMARY KEY` | Audit log record ID |
-| `user_id` | `INTEGER` | NO | `REFERENCES USERS(user_id) ON DELETE CASCADE` | User initiating query |
-| `search_query` | `TEXT` | NO | None | Executed query string |
-| `search_type` | `VARCHAR(50)` | NO | `CHECK (search_type IN ('KEYWORD','SEMANTIC','HYBRID','FILTER'))` | Search modality |
-| `search_date` | `TIMESTAMPTZ` | NO | `DEFAULT CURRENT_TIMESTAMP` | Timestamp of inquiry |
+### Table 8: `PAPER_AREA` (M:N Junction)
+```sql
+CREATE TABLE PAPER_AREA (
+    paper_id INTEGER NOT NULL REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    area_id INTEGER NOT NULL REFERENCES RESEARCH_AREA(area_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    PRIMARY KEY (paper_id, area_id)
+);
+```
 
-### 9. `CITATION` (Recursive Directed Citation Graph)
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `citing_paper_id` | `INTEGER` | NO | `REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE` | The paper citing another |
-| `cited_paper_id` | `INTEGER` | NO | `REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE` | The paper being cited |
-| *Constraint* | - | - | `CHECK (citing_paper_id <> cited_paper_id)` | Self-citation disallowed |
+### Table 9: `BOOKMARK` (1:N Library)
+```sql
+CREATE TABLE BOOKMARK (
+    user_id INTEGER NOT NULL REFERENCES USERS(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    paper_id INTEGER NOT NULL REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    PRIMARY KEY (user_id, paper_id)
+);
+```
 
-### 10. `PAPER_EMBEDDINGS` (pgvector Extension)
-| Column | Data Type | Nullable | Constraints / Defaults | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `embedding_id` | `SERIAL` | NO | `PRIMARY KEY` | Vector identifier |
-| `paper_id` | `INTEGER` | NO | `UNIQUE, REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE` | Paper linkage |
-| `embedding` | `vector(384)` | NO | None | 384-dimensional dense vector |
-| `embedding_model` | `VARCHAR(100)` | NO | `DEFAULT 'all-MiniLM-L6-v2'` | Sentence Transformer name |
-| `created_at` | `TIMESTAMPTZ` | NO | `DEFAULT CURRENT_TIMESTAMP` | Vector calculation date |
+### Table 10: `SEARCH_HISTORY` (Audit Queries)
+```sql
+CREATE TABLE SEARCH_HISTORY (
+    search_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES USERS(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    search_query TEXT NOT NULL,
+    search_type VARCHAR(50) NOT NULL CHECK (search_type IN ('KEYWORD', 'SEMANTIC', 'HYBRID', 'FILTER')),
+    search_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+```
 
+### Table 11: `CITATION` (Recursive Citation Network)
+```sql
+CREATE TABLE CITATION (
+    citing_paper_id INTEGER NOT NULL REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    cited_paper_id INTEGER NOT NULL REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    PRIMARY KEY (citing_paper_id, cited_paper_id),
+    CHECK (citing_paper_id <> cited_paper_id)
+);
+```
+
+### Table 12: `PAPER_EMBEDDINGS` (Dense Vector Storage)
+```sql
+CREATE TABLE PAPER_EMBEDDINGS (
+    embedding_id SERIAL PRIMARY KEY,
+    paper_id INTEGER NOT NULL UNIQUE REFERENCES RESEARCH_PAPER(paper_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    embedding vector(384) NOT NULL,
+    embedding_model VARCHAR(100) NOT NULL DEFAULT 'all-MiniLM-L6-v2',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+```
+
+---
+
+## 2. Relational Views
+
+1. `paper_details_view`: Joined denormalized projection combining papers, ordered authors, areas, journals, and conferences.
+2. `popular_papers_view`: Computed popularity index ranking papers using `DENSE_RANK() OVER (...)`.
+3. `author_publication_view`: Aggregated author metrics, publication counts, and cumulative citations.
+4. `user_bookmark_view`: Denormalized saved papers mapped per user.

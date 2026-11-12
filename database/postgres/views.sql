@@ -8,7 +8,8 @@
 -- Purpose: Unified denormalized view combining Research Paper with aggregated
 --          ordered authors and research areas for efficient catalog queries.
 -- -------------------------------------------------------------------------
-CREATE OR REPLACE VIEW paper_details_view AS
+DROP VIEW IF EXISTS paper_details_view;
+CREATE VIEW paper_details_view AS
 SELECT 
     rp.paper_id,
     rp.title,
@@ -17,6 +18,11 @@ SELECT
     rp.publication_date,
     rp.citation_count,
     rp.source,
+    rp.source_type,
+    rp.journal_id,
+    rp.conference_id,
+    j.journal_name,
+    c.conference_name,
     rp.created_at,
     COALESCE(
         string_agg(DISTINCT a.name, ', ' ORDER BY a.name),
@@ -28,6 +34,8 @@ SELECT
     ) AS research_areas,
     COUNT(DISTINCT b.user_id) AS bookmark_count
 FROM RESEARCH_PAPER rp
+LEFT JOIN JOURNAL j ON rp.journal_id = j.journal_id
+LEFT JOIN CONFERENCE c ON rp.conference_id = c.conference_id
 LEFT JOIN PAPER_AUTHOR pa ON rp.paper_id = pa.paper_id
 LEFT JOIN AUTHORS a ON pa.author_id = a.author_id
 LEFT JOIN PAPER_AREA par ON rp.paper_id = par.paper_id
@@ -41,6 +49,11 @@ GROUP BY
     rp.publication_date, 
     rp.citation_count, 
     rp.source, 
+    rp.source_type,
+    rp.journal_id,
+    rp.conference_id,
+    j.journal_name,
+    c.conference_name,
     rp.created_at;
 
 -- -------------------------------------------------------------------------

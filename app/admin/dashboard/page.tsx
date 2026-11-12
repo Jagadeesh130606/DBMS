@@ -75,7 +75,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="font-bold text-xs text-slate-900">PostgreSQL Relational DB</p>
-                <p className="text-[11px] text-emerald-700 font-medium">9 Tables • Normalized 3NF</p>
+                <p className="text-[11px] text-emerald-700 font-medium">12 Tables • Normalized 3NF/BCNF</p>
               </div>
             </div>
             <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="font-bold text-xs text-slate-900">MongoDB Document Database</p>
-                <p className="text-[11px] text-teal-700 font-medium">paper_documents Collection</p>
+                <p className="text-[11px] text-teal-700 font-medium">4 Collections • paper, author, area, citation</p>
               </div>
             </div>
             <CheckCircle2 className="w-5 h-5 text-teal-600" />
@@ -109,29 +109,41 @@ export default function AdminDashboard() {
         </div>
 
         {/* Global Statistics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-2xl font-extrabold text-slate-900">{stats?.totalPapers ?? 32}</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats?.totalPapers ?? 110}</p>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Research Papers</p>
-            <p className="text-[10px] text-emerald-600 mt-1">100% Cross-DB Synced</p>
+            <p className="text-[10px] text-emerald-600 mt-1 font-semibold">100% Cross-DB Synced</p>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-2xl font-extrabold text-slate-900">{stats?.totalAuthors ?? 15}</p>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Registered Authors</p>
-            <p className="text-[10px] text-slate-400 mt-1">M:N with Paper_Author</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats?.totalAuthors ?? 35}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Authors</p>
+            <p className="text-[10px] text-slate-400 mt-1 font-medium">M:N with Paper_Author</p>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-2xl font-extrabold text-slate-900">{stats?.totalCitations ?? 44}</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats?.totalAreas ?? 9}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Research Areas</p>
+            <p className="text-[10px] text-slate-400 mt-1 font-medium">M:N with Paper_Area</p>
+          </div>
+
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <p className="text-2xl font-extrabold text-slate-900">{(stats?.totalJournals ?? 12) + ' / ' + (stats?.totalConferences ?? 20)}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Journals / Confs</p>
+            <p className="text-[10px] text-purple-600 mt-1 font-medium">ER Venues Linked</p>
+          </div>
+
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <p className="text-2xl font-extrabold text-slate-900">{stats?.totalCitations ?? 195}</p>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Citation Edges</p>
-            <p className="text-[10px] text-blue-600 mt-1">Recursive CTEs enabled</p>
+            <p className="text-[10px] text-blue-600 mt-1 font-medium">Recursive CTEs enabled</p>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-2xl font-extrabold text-slate-900">{stats?.totalUsers ?? 10}</p>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Total User Accounts</p>
-            <p className="text-[10px] text-purple-600 mt-1">Admins &amp; Students</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats?.totalMongoDocuments ?? 264}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Mongo Documents</p>
+            <p className="text-[10px] text-teal-600 mt-1 font-medium">4 Collections Active</p>
           </div>
         </div>
 

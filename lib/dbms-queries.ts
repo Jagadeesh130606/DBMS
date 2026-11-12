@@ -95,6 +95,42 @@ ORDER BY rp.paper_id ASC
 LIMIT 10;`,
   },
   {
+    id: 'join_journal_er',
+    category: '6. Joins (ER Diagram)',
+    title: 'INNER JOIN (Papers Published in Journals)',
+    concept: 'M:1 Relationship PUBLISHED_IN from ER Diagram',
+    description: 'Retrieves research papers published in academic journals with publisher and ISSN validation.',
+    sql: `SELECT 
+    rp.paper_id,
+    rp.title,
+    rp.doi,
+    j.journal_name,
+    j.publisher,
+    j.issn
+FROM RESEARCH_PAPER rp
+INNER JOIN JOURNAL j ON rp.journal_id = j.journal_id
+ORDER BY rp.paper_id ASC
+LIMIT 10;`,
+  },
+  {
+    id: 'join_conference_er',
+    category: '6. Joins (ER Diagram)',
+    title: 'INNER JOIN (Papers Presented in Conferences)',
+    concept: 'M:1 Relationship PRESENTED_IN from ER Diagram',
+    description: 'Retrieves research papers presented in international conferences with venue locations and edition years.',
+    sql: `SELECT 
+    rp.paper_id,
+    rp.title,
+    rp.doi,
+    c.conference_name,
+    c.location,
+    c.year
+FROM RESEARCH_PAPER rp
+INNER JOIN CONFERENCE c ON rp.conference_id = c.conference_id
+ORDER BY rp.paper_id ASC
+LIMIT 10;`,
+  },
+  {
     id: 'left_join',
     category: '7. Outer Joins',
     title: 'LEFT OUTER JOIN (Users & Bookmarks)',

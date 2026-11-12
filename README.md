@@ -148,60 +148,70 @@ NODE_ENV=development
 ```
 
 ### 5.3 Installation & Seeding
+> [!TIP]
+> **Windows PowerShell Execution Policy Note:** If you see `npm.ps1 cannot be loaded because running scripts is disabled`, run:
+> ```powershell
+> npm.cmd run dev
+> ```
+> Or enable script execution once for your user account:
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+> ```
+
 1. **Install Dependencies:**
    ```bash
-   npm install
+   npm.cmd install
    ```
 
-2. **Initialize Database Schemas & DDL (PostgreSQL & MongoDB):**
+2. **Run Migrations & Initialize Database Schemas (PostgreSQL & MongoDB):**
    ```bash
-   npm run db:init
+   npm.cmd run seed
    ```
-   *Executes DDL scripts for all 10 tables, 4 views, 3 stored functions, 1 procedure, 3 triggers, and indexes.*
+   *Seeds all 12 PostgreSQL tables (110 papers, 35 authors, 9 areas, 12 journals, 20 conferences, 195 citations, 110 dense 384-D vector embeddings) and all 4 MongoDB collections (264 structured documents).*
 
-3. **Seed Database with Real Academic Papers:**
+3. **Run the Comprehensive Automated Test Suite:**
    ```bash
-   npm run db:seed
+   npm.cmd test
    ```
-   *Populates 32 landmark research papers, 15 authors, 8 research areas, 44 citation graph edges, 384-D vector embeddings, and 32 MongoDB structured documents.*
+   *Verifies all 51 assertions across 12 modules (100% pass rate).*
 
-4. **Run the Automated Test Suite:**
+4. **Start Development Server:**
    ```bash
-   npm test
-   ```
-   *Verifies all 34 assertions across 11 modules (100% pass rate).*
-
-5. **Start Development Server:**
-   ```bash
-   npm run dev
+   npm.cmd run dev
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-6. **Build for Production:**
+5. **Build for Production:**
    ```bash
-   npm run build
-   npm start
+   npm.cmd run build
+   npm.cmd run start
    ```
 
 ---
 
 ## 6. Database Architecture & Schema
 
-### 6.1 PostgreSQL Relational Model
-The database implements 9 normalized tables and 1 vector embedding table:
+### 6.1 PostgreSQL Relational Model (12 Tables)
+The database implements 11 normalized tables and 1 vector embedding table according to `ER DIAGRAM.png`:
 1. `USERS`: Student and Admin accounts with bcrypt password hashes.
 2. `AUTHORS`: Distinct researcher entities with affiliations.
 3. `RESEARCH_AREA`: Controlled taxonomy of computer science domains.
-4. `RESEARCH_PAPER`: Core academic metadata (DOI, title, abstract, citation count, source, date).
-5. `PAPER_AUTHOR`: Composite primary key `(paper_id, author_id)` with author sequence ordering.
-6. `PAPER_AREA`: Composite primary key `(paper_id, area_id)` mapping papers to domains.
-7. `BOOKMARK`: Composite primary key `(user_id, paper_id)` with creation timestamp.
-8. `SEARCH_HISTORY`: User search queries, timestamp, and search modality (`KEYWORD`, `SEMANTIC`, `HYBRID`).
-9. `CITATION`: Directed graph edges `(citing_paper_id, cited_paper_id)` with anti-self-citation constraints.
-10. `PAPER_EMBEDDINGS`: 384-dimensional dense vectors stored using the `vector(384)` type with HNSW index.
+4. `JOURNAL`: Academic journal publication venues (`journal_id`, `journal_name`, `publisher`, `issn`).
+5. `CONFERENCE`: Academic conference proceedings (`conference_id`, `conference_name`, `location`, `year`).
+6. `RESEARCH_PAPER`: Core academic metadata (`doi`, `title`, `abstract`, `citation_count`, `source_type`, `journal_id`, `conference_id`, `publication_date`).
+7. `PAPER_AUTHOR`: Composite primary key `(paper_id, author_id)` with author sequence ordering.
+8. `PAPER_AREA`: Composite primary key `(paper_id, area_id)` mapping papers to domains.
+9. `BOOKMARK`: Composite primary key `(user_id, paper_id)` with creation timestamp.
+10. `SEARCH_HISTORY`: User search queries, timestamp, and search modality (`KEYWORD`, `SEMANTIC`, `HYBRID`).
+11. `CITATION`: Directed graph edges `(citing_paper_id, cited_paper_id)` with anti-self-citation constraints.
+12. `PAPER_EMBEDDINGS`: 384-dimensional dense vectors stored using the `vector(384)` type with HNSW index.
 
-### 6.2 MongoDB Document Schema
-Collection: `paper_documents`
+### 6.2 MongoDB Multi-Collection Document Architecture (4 Collections)
+1. **`paper_documents` (110 documents):** Full narrative bodies, 4 structured sections (`Introduction`, `Methodology`, `Results`, `Conclusion`), bibliographic references arrays, and keywords.
+2. **`author_documents` (35 documents):** Researcher biographical summaries, research interests arrays, external profiles (Google Scholar, ORCID), and citation metrics.
+3. **`research_area_documents` (9 documents):** Sub-topic taxonomy hierarchies, emerging research trends, and top publication venues.
+4. **`citation_documents` (110 documents):** Rich citation context snippets, section references, and incoming/outgoing influence metrics.
+
 ```json
 {
   "paper_id": 1,
@@ -231,7 +241,7 @@ Collection: `paper_documents`
 
 | DBMS Concept | Implementation File | Verification & Details |
 | :--- | :--- | :--- |
-| **Relational Schema (10 Tables)** | `database/postgres/schema.sql` | 3NF/BCNF normalized, composite PKs, FKs with `ON DELETE CASCADE`. |
+| **Relational Schema (12 Tables)** | `database/postgres/schema.sql` | 3NF/BCNF normalized, composite PKs, FKs to `JOURNAL` and `CONFERENCE` with `ON DELETE CASCADE`. |
 | **Database Views (4 Views)** | `database/postgres/views.sql` | `paper_details_view`, `popular_papers_view`, `author_publication_view`, `user_bookmark_view`. |
 | **Stored Functions (3)** | `database/postgres/functions.sql` | `get_papers_by_area`, `calculate_popular_papers`, `get_citation_stats`. |
 | **Stored Procedures (1)** | `database/postgres/procedures.sql` | `add_research_paper_tx` executing transactional multi-table inserts. |
@@ -240,7 +250,8 @@ Collection: `paper_documents`
 | **Vector Indexing (HNSW)** | `database/postgres/indexes.sql` | HNSW cosine vector index `vector_cosine_ops` on `PAPER_EMBEDDINGS`. |
 | **ACID Transactions** | `app/api/papers/route.ts` | Multi-table `BEGIN` / `COMMIT` / `ROLLBACK` with cross-DB compensation. |
 | **Recursive CTEs** | `app/api/papers/[id]/citations/route.ts` | Multi-hop citation graph traversal using `WITH RECURSIVE CitationGraph`. |
-| **18 SQL Demonstrations** | `app/dbms/page.tsx` & `lib/dbms-queries.ts` | Interactive execution of all standard & advanced SQL query patterns with `EXPLAIN ANALYZE`. |
+| **20 SQL Demonstrations** | `app/dbms/page.tsx` & `lib/dbms-queries.ts` | Interactive execution of all standard & advanced SQL query patterns including ER joins with `EXPLAIN ANALYZE`. |
+| **Interactive Dual-DB CRUD**| `app/api/dbms/crud-demo/route.ts` | Step-by-step live INSERT/UPDATE/DELETE demonstrator with query audit log. |
 | **NoSQL Aggregations** | `app/api/dbms/analytics/route.ts` | Multi-stage `$unwind`, `$group`, `$facet` pipelines over document collections. |
 
 ---
@@ -279,22 +290,23 @@ Collection: `paper_documents`
 
 Run the full end-to-end verification suite with:
 ```bash
-npm test
+npm.cmd test
 ```
 
 ### Test Coverage Summary:
 - **Module 1: Authentication & Cryptographic Tests** (4/4 Passed)
-- **Module 2: PostgreSQL Relational Schema (10 Tables)** (10/10 Passed)
-- **Module 3: Relational Integrity & Self-Citation Constraints** (2/2 Passed)
+- **Module 2: PostgreSQL Relational Schema (12 Tables)** (12/12 Passed)
+- **Module 3: Relational Integrity, Constraints & ER Relationships** (4/4 Passed)
 - **Module 4: Database Views Execution** (4/4 Passed)
 - **Module 5: ACID Transactions & Atomicity Rollback** (1/1 Passed)
 - **Module 6: Stored Functions, Procedures & Triggers** (3/3 Passed)
 - **Module 7: Recursive Common Table Expressions (CTE)** (1/1 Passed)
 - **Module 8: Full-Text Search (GIN Index & ts_rank)** (1/1 Passed)
-- **Module 9: pgvector Cosine Similarity Search** (2/2 Passed)
-- **Module 10: MongoDB Document Storage & Aggregation** (4/4 Passed)
-- **Module 11: Cross-Database Synchronization** (2/2 Passed)
-- **TOTAL: 34 PASSED / 0 FAILED (100% Pass Rate)**
+- **Module 9: pgvector Cosine Similarity Search (384-D)** (2/2 Passed)
+- **Module 10: MongoDB Document Storage & 4 Collections Verification** (9/9 Passed)
+- **Module 11: Cross-Database Synchronization & Parity Checks** (6/6 Passed)
+- **Module 12: Dynamic End-to-End Dual-DB CRUD Lifecycle** (4/4 Passed)
+- **TOTAL: 51 PASSED / 0 FAILED (100% Pass Rate)**
 
 Detailed test logs and verification output are available in [docs/TEST_REPORT.md](docs/TEST_REPORT.md).
 

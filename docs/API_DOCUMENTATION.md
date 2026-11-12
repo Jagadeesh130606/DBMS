@@ -209,7 +209,10 @@ The Research Paper Discovery and Semantic Recommendation platform provides a ful
     "abstract": "We evaluate high-dimensional indexing strategies...",
     "doi": "10.1145/9999999.8888888",
     "publication_date": "2024-05-15",
-    "source": "ACM SIGMOD 2024",
+    "source": "ACM Transactions on Database Systems",
+    "source_type": "JOURNAL",
+    "journal_id": 1,
+    "conference_id": null,
     "citation_count": 0,
     "author_ids": [1, 2],
     "area_ids": [1, 3],
@@ -547,4 +550,93 @@ The Research Paper Discovery and Semantic Recommendation platform provides a ful
       "execution_time_ms": 1.42
     }
     ```
+
+### 9.3 Database Overview & Table/Collection Metadata
+- **Method:** `GET`
+- **Endpoint:** `/api/dbms/overview`
+- **Access:** Public
+- **Description:** Returns live row counts, columns, constraints, foreign keys, and indexes for all 12 PostgreSQL tables and document schemas/indexes for all 4 MongoDB collections.
+- **Responses:**
+  - `200 OK`:
+    ```json
+    {
+      "postgres": {
+        "engine": "PostgreSQL 16 (PGlite with pgvector)",
+        "tables": [
+          { "name": "RESEARCH_PAPER", "count": 110, "columns": ["paper_id", "title", "doi", "source_type", "journal_id", "conference_id", "..."] }
+        ]
+      },
+      "mongodb": {
+        "engine": "MongoDB 8.2",
+        "database": "research_paper_db",
+        "collections": [
+          { "name": "paper_documents", "count": 110 },
+          { "name": "author_documents", "count": 35 },
+          { "name": "research_area_documents", "count": 9 },
+          { "name": "citation_documents", "count": 110 }
+        ]
+      }
+    }
+    ```
+
+### 9.4 MongoDB Collection Sample Viewer
+- **Method:** `GET`
+- **Endpoint:** `/api/dbms/collection-sample?collection=author_documents&limit=1`
+- **Access:** Public
+- **Query Parameters:**
+  - `collection` (string, required): `paper_documents`, `author_documents`, `research_area_documents`, or `citation_documents`.
+  - `limit` (integer, optional): Maximum sample documents to return (default: 1).
+- **Responses:**
+  - `200 OK`:
+    ```json
+    {
+      "collection": "author_documents",
+      "count": 35,
+      "samples": [
+        {
+          "author_id": 1,
+          "name": "Yoshua Bengio",
+          "bio": "Full Professor at Université de Montréal...",
+          "research_interests": ["Deep Learning", "Representation Learning"],
+          "metrics": { "h_index": 182, "total_citations": 550000 }
+        }
+      ]
+    }
+    ```
+
+### 9.5 Interactive Dual-DB Live CRUD Demonstrator
+- **Method:** `POST`
+- **Endpoint:** `/api/dbms/crud-demo`
+- **Access:** Public / Admin
+- **Description:** Executes an interactive demonstration of cross-database lifecycle operations with live timing, multi-database query audit log, and rollback verification.
+- **Request Body:**
+  ```json
+  {
+    "action": "INSERT",
+    "paper": {
+      "title": "Interactive Dual-DB Consistency Verification Paper",
+      "abstract": "Live verification of dual-database two-phase commit...",
+      "doi": "10.1145/demo.2026.001",
+      "source_type": "JOURNAL",
+      "journal_id": 1
+    }
+  }
+  ```
+- **Responses:**
+  - `200 OK`:
+    ```json
+    {
+      "success": true,
+      "action": "INSERT",
+      "paper_id": 111,
+      "logs": [
+        { "step": 1, "db": "PostgreSQL", "op": "INSERT INTO RESEARCH_PAPER...", "status": "SUCCESS" },
+        { "step": 2, "db": "PostgreSQL", "op": "INSERT INTO PAPER_EMBEDDINGS (384-D vector)...", "status": "SUCCESS" },
+        { "step": 3, "db": "MongoDB", "op": "paper_documents.insertOne({...})", "status": "SUCCESS" },
+        { "step": 4, "db": "MongoDB", "op": "citation_documents.insertOne({...})", "status": "SUCCESS" }
+      ],
+      "execution_time_ms": 14.8
+    }
+    ```
+
 

@@ -36,6 +36,10 @@ CREATE INDEX IF NOT EXISTS idx_citation_citing ON CITATION(citing_paper_id);
 CREATE INDEX IF NOT EXISTS idx_citation_cited ON CITATION(cited_paper_id);
 CREATE INDEX IF NOT EXISTS idx_citation_composite ON CITATION(citing_paper_id, cited_paper_id);
 
+CREATE INDEX IF NOT EXISTS idx_paper_journal ON RESEARCH_PAPER(journal_id);
+CREATE INDEX IF NOT EXISTS idx_paper_conference ON RESEARCH_PAPER(conference_id);
+CREATE INDEX IF NOT EXISTS idx_paper_source_type ON RESEARCH_PAPER(source_type);
+
 -- -------------------------------------------------------------------------
 -- 3. GIN INDEX FOR POSTGRESQL FULL-TEXT SEARCH (FTS)
 -- -------------------------------------------------------------------------
