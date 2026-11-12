@@ -1,0 +1,804 @@
+# PROJECT IMPLEMENTATION PROMPT
+## Research Paper Discovery and Semantic Recommendation System Using Multi-Model Databases
+
+Act as a senior full-stack developer, database architect, and DBMS engineer.
+
+Build a complete, functional, production-quality academic project named:
+
+**Research Paper Discovery and Semantic Recommendation System Using Multi-Model Databases**
+
+Do not create only a frontend prototype. Implement the entire application, including frontend, backend, PostgreSQL, MongoDB, semantic search, SQL operations, authentication, database integration, testing, and documentation.
+
+Do not stop after generating the project structure. Implement every module, connect all components, run the application, test the functionality, and fix errors.
+
+---
+
+# 1. PROJECT OBJECTIVE
+
+Develop a research paper discovery platform that allows students and researchers to:
+
+- Search for research papers using keywords.
+- Search using natural language queries.
+- Discover semantically similar research papers.
+- Filter papers by author, research area, publication date, and source.
+- View complete research paper details.
+- Bookmark research papers.
+- Maintain search history.
+- Explore authors and research areas.
+- View citations and related papers.
+- Receive personalized research paper recommendations.
+
+The project must demonstrate practical implementation of relational databases, NoSQL databases, SQL queries, database normalization, indexing, transactions, triggers, stored procedures, aggregation, and vector similarity search.
+
+# 2. TECHNOLOGY STACK
+
+Use the following technologies.
+
+Frontend:
+- Next.js
+- TypeScript
+- Tailwind CSS
+- Responsive modern UI
+
+Backend:
+- Next.js API routes or a clearly separated backend API.
+- Node.js
+- TypeScript
+- Input validation
+- Secure authentication
+
+Relational Database:
+- PostgreSQL
+- pgvector extension
+- PostgreSQL Full-Text Search
+- node-postgres (pg) for SQL execution
+
+Document Database:
+- MongoDB
+- Mongoose
+
+Semantic Search:
+- Sentence Transformers
+- all-MiniLM-L6-v2 embedding model or another compatible open-source model.
+- Store embeddings in PostgreSQL using pgvector.
+- Use cosine similarity for semantic recommendations.
+
+Do not substitute MongoDB with PostgreSQL JSON columns. Both databases must be genuinely implemented and used for different purposes.
+
+# 3. DATABASE ARCHITECTURE
+
+Use two database systems.
+
+A. POSTGRESQL — RELATIONAL DATABASE
+
+PostgreSQL must store structured and relational information.
+
+Create the following nine tables.
+
+1. USERS
+
+Columns:
+- user_id (Primary Key)
+- name
+- email (Unique)
+- password_hash
+- role (ADMIN or STUDENT)
+- created_at
+
+2. AUTHORS
+
+Columns:
+- author_id (Primary Key)
+- name
+- affiliation
+- email
+
+3. RESEARCH_PAPER
+
+Columns:
+- paper_id (Primary Key)
+- title
+- abstract
+- doi (Unique)
+- publication_date
+- citation_count
+- source
+- created_at
+
+4. RESEARCH_AREA
+
+Columns:
+- area_id (Primary Key)
+- area_name (Unique)
+- description
+
+5. PAPER_AUTHOR
+
+Columns:
+- paper_id (Composite Primary Key, Foreign Key)
+- author_id (Composite Primary Key, Foreign Key)
+- author_order
+
+6. PAPER_AREA
+
+Columns:
+- paper_id (Composite Primary Key, Foreign Key)
+- area_id (Composite Primary Key, Foreign Key)
+
+7. BOOKMARK
+
+Columns:
+- user_id (Composite Primary Key, Foreign Key)
+- paper_id (Composite Primary Key, Foreign Key)
+- created_at
+
+8. SEARCH_HISTORY
+
+Columns:
+- search_id (Primary Key)
+- user_id (Foreign Key)
+- search_query
+- search_type
+- search_date
+
+9. CITATION
+
+Columns:
+- citing_paper_id (Composite Primary Key, Foreign Key)
+- cited_paper_id (Composite Primary Key, Foreign Key)
+
+Add appropriate:
+- NOT NULL constraints
+- UNIQUE constraints
+- CHECK constraints
+- Foreign keys
+- ON DELETE and ON UPDATE actions
+- Composite primary keys
+- Appropriate indexes
+
+Ensure that a paper cannot cite itself.
+
+Use normalized relational design and maintain referential integrity.
+
+B. MONGODB — DOCUMENT DATABASE
+
+MongoDB must store flexible and unstructured research-paper content.
+
+Create a collection named `paper_documents`.
+
+Each document should contain:
+
+{
+  "paper_id": 1,
+  "full_text": "...",
+  "sections": [
+    {
+      "heading": "Introduction",
+      "content": "..."
+    },
+    {
+      "heading": "Methodology",
+      "content": "..."
+    },
+    {
+      "heading": "Results",
+      "content": "..."
+    },
+    {
+      "heading": "Conclusion",
+      "content": "..."
+    }
+  ],
+  "references": [
+    {
+      "title": "...",
+      "authors": ["..."],
+      "year": 2024,
+      "doi": "..."
+    }
+  ],
+  "keywords": ["machine learning", "AI"],
+  "metadata": {
+    "language": "English",
+    "document_type": "Research Article"
+  }
+}
+
+Use MongoDB for:
+- Full research paper content.
+- Paper sections.
+- References.
+- Flexible metadata.
+- Document retrieval.
+- Aggregation pipelines.
+
+Create indexes for paper_id and relevant searchable fields.
+
+Maintain a consistent relationship between PostgreSQL paper_id and MongoDB paper_id.
+
+Do not duplicate relational data unnecessarily.
+
+C. PGVECTOR — SEMANTIC SEARCH
+
+Enable the PostgreSQL pgvector extension.
+
+Create a separate table named `paper_embeddings`.
+
+Suggested columns:
+- embedding_id
+- paper_id (Foreign Key)
+- embedding vector
+- embedding_model
+- created_at
+
+Generate embeddings from paper titles and abstracts, with an optional full-text embedding strategy.
+
+Use cosine similarity to find relevant papers.
+
+Implement:
+- Embedding generation.
+- Embedding storage.
+- Similarity search.
+- Top-K recommendations.
+- Duplicate embedding prevention.
+- Embedding updates when paper content changes.
+
+Do not use fake similarity scores or hardcoded recommendations.
+
+# 4. DATABASE RELATIONSHIPS
+
+Implement the following relationships.
+
+- USER 1:N BOOKMARK
+- RESEARCH_PAPER 1:N BOOKMARK
+- USER 1:N SEARCH_HISTORY
+- RESEARCH_PAPER M:N AUTHOR through PAPER_AUTHOR
+- RESEARCH_PAPER M:N RESEARCH_AREA through PAPER_AREA
+- RESEARCH_PAPER M:N RESEARCH_PAPER through CITATION
+
+Implement these relationships using correct foreign keys and composite keys.
+
+The database schema must match the ER diagram.
+
+Do not introduce additional relational entities without documenting and updating the ER diagram.
+
+# 5. APPLICATION MODULES
+
+Implement the following modules.
+
+## MODULE 1: Authentication
+
+- Student registration.
+- Student login.
+- Admin login.
+- Password hashing using bcrypt.
+- Secure session management.
+- Role-based authorization.
+- Logout functionality.
+- Protected routes.
+
+Never store plain-text passwords.
+
+## MODULE 2: Dashboard
+
+Create a modern dashboard showing:
+- Total research papers.
+- Total authors.
+- Total research areas.
+- Total citations.
+- Recently added papers.
+- Popular research areas.
+- Most bookmarked papers.
+- Recent searches.
+
+Statistics must be retrieved from actual databases.
+
+## MODULE 3: Research Paper Management
+
+Implement complete CRUD operations.
+
+Students:
+- View research papers.
+- Search and filter papers.
+- Open detailed paper information.
+- Bookmark papers.
+
+Admins:
+- Add papers.
+- Edit papers.
+- Delete papers.
+- Manage authors.
+- Manage research areas.
+- Add and manage citations.
+
+When a research paper is added, update both PostgreSQL and MongoDB appropriately.
+
+Use database transactions and a reliable synchronization strategy for cross-database operations. PostgreSQL transactions do not automatically cover MongoDB; handle failures and compensation explicitly.
+
+## MODULE 4: Keyword Search
+
+Implement PostgreSQL Full-Text Search.
+
+Use:
+- tsvector
+- tsquery
+- plainto_tsquery or websearch_to_tsquery
+- GIN indexes
+- Ranking using ts_rank
+
+Search should support:
+- Paper title.
+- Abstract.
+- Keywords where applicable.
+
+Display ranked search results.
+
+## MODULE 5: Semantic Search
+
+Create a separate semantic search interface.
+
+Example query:
+
+"How can machine learning detect network intrusion attacks?"
+
+The application must:
+
+1. Accept natural language input.
+2. Generate an embedding using the selected embedding model.
+3. Query pgvector.
+4. Calculate cosine similarity.
+5. Retrieve the most relevant papers.
+6. Display similarity-ranked results.
+
+Allow the user to select the number of results.
+
+Do not implement semantic search as ordinary keyword matching.
+
+## MODULE 6: Hybrid Search
+
+Implement a hybrid search mode combining:
+
+- PostgreSQL keyword search.
+- pgvector semantic search.
+
+Combine the results using a documented ranking strategy, such as Reciprocal Rank Fusion.
+
+Avoid duplicate papers in the final results.
+
+Display the search mode used.
+
+## MODULE 7: Recommendations
+
+Implement:
+- Similar papers.
+- Related research areas.
+- Recommendations based on bookmarked papers.
+- Recommendations based on search history.
+
+Use real paper embeddings and actual user activity.
+
+## MODULE 8: Bookmark Management
+
+- Add bookmarks.
+- Remove bookmarks.
+- View saved papers.
+- Prevent duplicate bookmarks.
+- Maintain bookmark timestamps.
+
+## MODULE 9: Search History
+
+Store:
+- Search query.
+- Search type.
+- Search timestamp.
+- User ID.
+
+Support viewing and deleting search history.
+
+## MODULE 10: Citation Exploration
+
+Display:
+- Papers cited by a selected paper.
+- Papers citing a selected paper.
+- Citation counts.
+- Related papers.
+
+Implement recursive or multi-level citation exploration using SQL recursive CTEs where appropriate.
+
+# 6. ADVANCED DBMS REQUIREMENTS
+
+This is a Level-3 DBMS project.
+
+Demonstrate the following concepts through actual implementation.
+
+A. SQL QUERIES
+
+Create a dedicated SQL demonstration module containing working examples of:
+
+1. Basic SELECT queries.
+2. WHERE filtering.
+3. ORDER BY.
+4. GROUP BY.
+5. HAVING.
+6. INNER JOIN.
+7. LEFT JOIN.
+8. RIGHT JOIN.
+9. Multiple-table JOIN.
+10. Aggregate functions.
+11. Subqueries.
+12. Correlated subqueries.
+13. EXISTS and NOT EXISTS.
+14. UNION.
+15. Common Table Expressions.
+16. Recursive CTEs.
+17. Window functions.
+18. INSERT, UPDATE and DELETE.
+
+Create meaningful examples using the actual project tables.
+
+Do not use unrelated demonstration tables.
+
+B. TRANSACTIONS
+
+Demonstrate:
+- BEGIN.
+- COMMIT.
+- ROLLBACK.
+- SAVEPOINT.
+- ACID properties.
+
+Example: Add a research paper and its author associations atomically.
+
+C. VIEWS
+
+Create useful views such as:
+- paper_details_view
+- popular_papers_view
+- author_publication_view
+- user_bookmark_view
+
+D. STORED PROCEDURES AND FUNCTIONS
+
+Implement useful PostgreSQL functions/procedures such as:
+- Add a research paper.
+- Retrieve papers by research area.
+- Calculate popular papers.
+- Retrieve citation statistics.
+
+E. TRIGGERS
+
+Implement actual database triggers.
+
+Examples:
+- Automatically update updated_at when a record changes, if an updated_at field is introduced.
+- Maintain citation_count when citations are inserted or deleted.
+- Maintain relevant database consistency rules.
+
+F. INDEXING
+
+Demonstrate:
+- B-tree indexes.
+- Composite indexes.
+- GIN indexes for full-text search.
+- HNSW or IVFFlat indexes for pgvector where appropriate.
+
+Use EXPLAIN ANALYZE to demonstrate query performance.
+
+G. MONGODB AGGREGATION
+
+Implement aggregation pipelines to:
+- Count papers by document type.
+- Group papers by keywords.
+- Analyze reference distribution.
+- Retrieve papers with selected metadata.
+- Perform useful document analytics.
+
+H. VECTOR SEARCH
+
+Implement actual vector similarity queries and explain:
+- What is embedded.
+- Which model is used.
+- Vector dimensions.
+- Similarity metric.
+- How nearest neighbors are retrieved.
+
+Create a DBMS demonstration page where these concepts can be tested.
+
+Each demonstration must execute a real database operation and display its result.
+
+# 7. USER INTERFACE DESIGN
+
+Create a professional academic research platform.
+
+Use a clean, modern, responsive design.
+
+Pages required:
+
+1. Landing page.
+2. Login page.
+3. Registration page.
+4. Student dashboard.
+5. Admin dashboard.
+6. Research paper listing.
+7. Research paper details.
+8. Keyword search page.
+9. Semantic search page.
+10. Hybrid search page.
+11. Recommendations page.
+12. Bookmarks page.
+13. Search history page.
+14. Author directory.
+15. Research area directory.
+16. Citation exploration page.
+17. DBMS concepts demonstration page.
+18. Admin paper management page.
+19. Database analytics page.
+
+Include:
+- Sidebar navigation.
+- Search bar.
+- Filter controls.
+- Paper cards.
+- Pagination.
+- Loading states.
+- Empty states.
+- Error messages.
+- Toast notifications.
+- Responsive layout.
+
+Use a consistent visual design suitable for a university-level project demonstration.
+
+Do not create non-functional buttons or dummy navigation.
+
+# 8. DATABASE SEEDING
+
+Provide realistic sample data.
+
+Seed at least:
+- 30 research papers.
+- 15 authors.
+- 8 research areas.
+- 10 users including student and admin accounts.
+- 30 or more citation relationships.
+- Multiple bookmarks.
+- Search history.
+- MongoDB paper documents for every seeded paper.
+- Real embeddings generated for seeded papers.
+
+Use sample research data with valid and consistent references.
+
+Make the seed script repeatable without creating duplicates.
+
+Clearly document the demo login credentials.
+
+# 9. BACKEND API
+
+Create clean APIs for:
+
+Authentication:
+- POST /api/auth/register
+- POST /api/auth/login
+- POST /api/auth/logout
+
+Papers:
+- GET /api/papers
+- GET /api/papers/:id
+- POST /api/papers
+- PUT /api/papers/:id
+- DELETE /api/papers/:id
+
+Search:
+- GET /api/search/keyword
+- POST /api/search/semantic
+- POST /api/search/hybrid
+
+Bookmarks:
+- GET /api/bookmarks
+- POST /api/bookmarks
+- DELETE /api/bookmarks/:paperId
+
+Recommendations:
+- GET /api/recommendations
+
+History:
+- GET /api/search-history
+- DELETE /api/search-history/:id
+
+Authors and research areas:
+- GET /api/authors
+- GET /api/areas
+
+Citations:
+- GET /api/papers/:id/citations
+
+DBMS demonstrations:
+- GET /api/dbms/queries
+- POST /api/dbms/execute
+- GET /api/dbms/analytics
+
+Adapt endpoint structure if needed, but preserve all functionality and secure every endpoint.
+
+Never expose arbitrary SQL execution to ordinary users. The DBMS demonstration module must use an admin-only allowlisted set of queries or safely parameterized inputs.
+
+# 10. SECURITY
+
+Implement:
+- Password hashing.
+- Input validation.
+- SQL parameterization.
+- MongoDB query validation.
+- Role-based access.
+- Secure environment variables.
+- API authorization.
+- Error handling.
+- Protection against SQL injection.
+- Protection against NoSQL injection.
+- Safe file/document handling.
+
+Do not expose database credentials in frontend code.
+
+# 11. PROJECT STRUCTURE
+
+Organize the code cleanly.
+
+Suggested structure:
+
+frontend/
+  app/
+  components/
+  hooks/
+  lib/
+  types/
+
+backend or API:
+  routes/
+  controllers/
+  services/
+  middleware/
+  validators/
+
+database/
+  postgres/
+    migrations/
+    schema.sql
+    functions.sql
+    procedures.sql
+    triggers.sql
+    views.sql
+    indexes.sql
+    seed.sql
+  mongodb/
+    models/
+    seed/
+
+semantic/
+  embedding_service/
+  model/
+  requirements.txt
+
+tests/
+  unit/
+  integration/
+  database/
+
+docs/
+  ER_DIAGRAM
+  RELATIONAL_SCHEMA
+  DATABASE_ARCHITECTURE
+  API_DOCUMENTATION
+
+Adapt this structure to Next.js conventions where appropriate.
+
+# 12. TESTING
+
+Implement and run:
+
+- Authentication tests.
+- Authorization tests.
+- CRUD tests.
+- Foreign key constraint tests.
+- Unique constraint tests.
+- Transaction tests.
+- SQL query tests.
+- MongoDB integration tests.
+- Keyword search tests.
+- Semantic search tests.
+- Hybrid search tests.
+- Bookmark tests.
+- Citation tests.
+- Cross-database synchronization tests.
+
+Verify that PostgreSQL and MongoDB contain consistent paper records.
+
+Test invalid inputs and failure scenarios.
+
+Fix all major errors before completion.
+
+# 13. DOCUMENTATION
+
+Generate:
+
+1. Complete README.md.
+2. Problem statement.
+3. Project objectives.
+4. Functional requirements.
+5. System architecture diagram.
+6. ER diagram in Chen notation.
+7. Relational schema.
+8. Data dictionary.
+9. Database justification.
+10. SQL query documentation.
+11. MongoDB collection documentation.
+12. Vector search explanation.
+13. API documentation.
+14. Testing report.
+15. Screenshots of the working application.
+
+Explain clearly why PostgreSQL, MongoDB, and pgvector are used.
+
+The ER diagram must represent the nine relational entities and their relationships. MongoDB collections and the embedding table should be documented separately rather than incorrectly represented as additional entities in the original ER diagram.
+
+# 14. EXECUTION AND ENVIRONMENT
+
+Provide:
+
+- .env.example
+- Docker Compose for PostgreSQL with pgvector and MongoDB.
+- Database initialization scripts.
+- Migration commands.
+- Seeding commands.
+- Application startup commands.
+- Testing commands.
+
+Ensure the project can be started using documented commands.
+
+Do not hardcode credentials.
+
+Do not commit actual .env files.
+
+# 15. STRICT IMPLEMENTATION INSTRUCTIONS
+
+Follow these rules:
+
+1. First inspect the existing repository and identify its current structure.
+2. Preserve useful existing code.
+3. Do not overwrite unrelated files.
+4. Build the project incrementally.
+5. Connect PostgreSQL and MongoDB independently.
+6. Verify that both databases actually work.
+7. Implement real semantic search, not mock results.
+8. Do not generate fake dashboard statistics.
+9. Do not leave TODO placeholders for required features.
+10. Do not leave non-functional buttons.
+11. Do not duplicate database records.
+12. Do not bypass database constraints.
+13. Do not expose sensitive credentials.
+14. Run tests after implementation.
+15. Fix runtime, build, and integration errors.
+16. Update README with exact execution instructions.
+
+# 16. FINAL ACCEPTANCE CRITERIA
+
+The project is complete only when:
+
+- The Next.js application runs successfully.
+- PostgreSQL connects successfully.
+- MongoDB connects successfully.
+- All nine relational entities are implemented.
+- Foreign key relationships work.
+- SQL query demonstrations execute successfully.
+- Transactions, views, functions, procedures, triggers, and indexes are implemented.
+- MongoDB document storage and aggregation work.
+- pgvector embeddings are generated and stored.
+- Semantic search returns meaningful results.
+- Hybrid search combines keyword and semantic results.
+- Student and admin roles work correctly.
+- Bookmarks and search history work.
+- Citation exploration works.
+- Seed data is available.
+- Automated tests pass.
+- Documentation is complete.
+
+First produce a short implementation plan, then execute it. Do not stop at the planning stage.
+
+**Final objective:** Deliver a fully working, integrated, demonstrable Level-3 DBMS project that clearly proves the practical use of relational SQL, NoSQL document storage, and vector similarity search.
