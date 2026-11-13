@@ -639,4 +639,42 @@ The Research Paper Discovery and Semantic Recommendation platform provides a ful
     }
     ```
 
+### 9.6 Live Database Activity & Real-Time Query Stream
+- **Method:** `GET`
+- **Endpoint:** `/api/dbms/live-queries`
+- **Access:** Public
+- **Query Parameters:**
+  - `limit` (integer, optional): Maximum recent queries to return (default: 50).
+  - `filter` (string, optional): `'all'`, `'PostgreSQL'`, or `'MongoDB'` (default: `'all'`).
+- **Description:** Returns the live in-memory ring buffer of real SQL and MongoDB queries captured during user interaction, including execution durations, request correlation IDs, and parameters.
+- **Responses:**
+  - `200 OK`:
+    ```json
+    {
+      "success": true,
+      "queries": [
+        {
+          "id": "evt-7k2j9s1",
+          "timestamp": "11:28:29",
+          "dbType": "PostgreSQL",
+          "operation": "SELECT",
+          "target": "RESEARCH_PAPER",
+          "query": "SELECT * FROM RESEARCH_PAPER WHERE paper_id = $1;",
+          "parameters": [1],
+          "status": "SUCCESS",
+          "rowCount": 1,
+          "executionTimeMs": 7.87,
+          "requestId": "req-002",
+          "action": "View Research Paper Details"
+        }
+      ],
+      "stats": {
+        "totalCaptured": 24,
+        "pgCount": 16,
+        "mongoCount": 8
+      }
+    }
+    ```
+
+
 

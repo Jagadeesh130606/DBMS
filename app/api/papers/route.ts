@@ -4,8 +4,9 @@ import { connectMongoDB } from '@/lib/db/mongodb';
 import PaperDocument from '@/database/mongodb/models/PaperDocument';
 import { generateEmbedding, formatVectorForPg } from '@/semantic/embedding_service/embedder';
 import { getCurrentUser } from '@/lib/auth';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function GET(req: NextRequest) {
+async function handleGet(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
@@ -130,7 +131,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     const user = getCurrentUser(req);
     if (!user || user.role !== 'ADMIN') {
@@ -261,4 +262,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export const GET = withApiLogging(handleGet, 'Search & Filter Research Papers');
+export const POST = withApiLogging(handlePost, 'Add Research Paper (Multi-Model Transaction)');
 

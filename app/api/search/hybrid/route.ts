@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db/postgres';
 import { generateEmbedding, formatVectorForPg } from '@/semantic/embedding_service/embedder';
 import { getCurrentUser } from '@/lib/auth';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     const body = await req.json();
     const q = body.query || body.q || '';
@@ -147,15 +148,18 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+async function handleGet(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get('q') || '';
   const topK = searchParams.get('topK') || '10';
 
-  return POST(new NextRequest(req.url, {
+  return handlePost(new NextRequest(req.url, {
     method: 'POST',
     body: JSON.stringify({ query: q, topK }),
     headers: req.headers,
   }));
 }
+
+export const POST = withApiLogging(handlePost, 'Hybrid Search (PostgreSQL FTS + pgvector RRF)');
+export const GET = withApiLogging(handleGet, 'Hybrid Search (PostgreSQL FTS + pgvector RRF)');
 

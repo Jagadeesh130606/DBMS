@@ -57,12 +57,18 @@ export default function PaperDetailsPage() {
   const toggleBookmark = async () => {
     try {
       if (bookmarked) {
-        await fetch(`/api/bookmarks/${paperId}`, { method: 'DELETE' });
+        await fetch(`/api/bookmarks/${paperId}`, { 
+          method: 'DELETE',
+          headers: { 'x-action-name': 'Remove Paper Bookmark' }
+        });
         setBookmarked(false);
       } else {
         const res = await fetch('/api/bookmarks', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-action-name': 'Add Paper Bookmark'
+          },
           body: JSON.stringify({ paperId: parseInt(paperId, 10) }),
         });
         if (res.ok) {

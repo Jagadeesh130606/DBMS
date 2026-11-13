@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db/postgres';
 import { getCurrentUser } from '@/lib/auth';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function GET(req: NextRequest) {
+async function handleGet(req: NextRequest) {
   try {
     const user = getCurrentUser(req);
     if (!user) {
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     const user = getCurrentUser(req);
     if (!user) {
@@ -75,4 +76,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export const GET = withApiLogging(handleGet, 'List Saved Bookmarks');
+export const POST = withApiLogging(handlePost, 'Add Paper Bookmark');
 

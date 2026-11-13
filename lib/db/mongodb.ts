@@ -1,4 +1,8 @@
 import mongoose from 'mongoose';
+import { mongoLoggerPlugin } from './mongo-logger-plugin';
+
+// Apply global logger plugin to mongoose schemas
+mongoose.plugin(mongoLoggerPlugin);
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/research_paper_db';
 

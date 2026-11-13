@@ -35,7 +35,10 @@ export default function PaperCard({ paper, onBookmarkToggle }: PaperCardProps) {
 
     try {
       if (bookmarked) {
-        const res = await fetch(`/api/bookmarks/${paper.paper_id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/bookmarks/${paper.paper_id}`, { 
+          method: 'DELETE',
+          headers: { 'x-action-name': 'Remove Paper Bookmark' }
+        });
         if (res.ok) {
           setBookmarked(false);
           onBookmarkToggle?.(paper.paper_id, false);
@@ -43,7 +46,10 @@ export default function PaperCard({ paper, onBookmarkToggle }: PaperCardProps) {
       } else {
         const res = await fetch('/api/bookmarks', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-action-name': 'Add Paper Bookmark'
+          },
           body: JSON.stringify({ paperId: paper.paper_id }),
         });
         if (res.ok) {

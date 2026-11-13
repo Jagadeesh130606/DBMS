@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db/postgres';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function GET(req: NextRequest) {
+async function handleGet(req: NextRequest) {
   try {
     const res = await query(`
       SELECT 
@@ -26,4 +27,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export const GET = withApiLogging(handleGet, 'Explore Research Areas');
 

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db/postgres';
 import { getCurrentUser } from '@/lib/auth';
 import { DBMS_DEMO_QUERIES } from '@/lib/dbms-queries';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     const body = await req.json();
     const { queryId, customSql } = body;
@@ -72,3 +73,5 @@ export async function POST(req: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export const POST = withApiLogging(handlePost, 'Execute SQL Workbench Query');

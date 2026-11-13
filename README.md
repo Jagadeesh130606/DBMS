@@ -175,13 +175,25 @@ NODE_ENV=development
    ```
    *Verifies all 51 assertions across 12 modules (100% pass rate).*
 
-4. **Start Development Server:**
+4. **Verify PostgreSQL Server Connection & Status:**
+   ```bash
+   npm.cmd run pg:verify
+   ```
+   *Inspects PostgreSQL connection on port 5432 and verifies PGlite fallback readiness.*
+
+5. **Start Development Server with Live Query Logging:**
    ```bash
    npm.cmd run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Open [http://localhost:3000](http://localhost:3000) in your browser. Whenever you click buttons on the frontend (searching, bookmarking, adding/deleting papers, running SQL queries), the actual real-time queries and parameters stream immediately into that same PowerShell terminal!
 
-5. **Build for Production:**
+6. **Migrate to Real PostgreSQL Server (Optional):**
+   ```bash
+   npm.cmd run pg:migrate
+   ```
+   *Copies all 110 research papers, 35 authors, and dense vectors from embedded PGlite to your native Windows PostgreSQL instance.*
+
+7. **Build for Production:**
    ```bash
    npm.cmd run build
    npm.cmd run start
@@ -252,6 +264,7 @@ The database implements 11 normalized tables and 1 vector embedding table accord
 | **Recursive CTEs** | `app/api/papers/[id]/citations/route.ts` | Multi-hop citation graph traversal using `WITH RECURSIVE CitationGraph`. |
 | **20 SQL Demonstrations** | `app/dbms/page.tsx` & `lib/dbms-queries.ts` | Interactive execution of all standard & advanced SQL query patterns including ER joins with `EXPLAIN ANALYZE`. |
 | **Interactive Dual-DB CRUD**| `app/api/dbms/crud-demo/route.ts` | Step-by-step live INSERT/UPDATE/DELETE demonstrator with query audit log. |
+| **Live Database Activity Monitor** | `lib/db/query-logger.ts` & `/dbms` | Real-time query streaming to PowerShell terminal and UI monitor with request correlation. |
 | **NoSQL Aggregations** | `app/api/dbms/analytics/route.ts` | Multi-stage `$unwind`, `$group`, `$facet` pipelines over document collections. |
 
 ---

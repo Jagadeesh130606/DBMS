@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db/postgres';
 import { getCurrentUser } from '@/lib/auth';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+async function handleDelete(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = getCurrentUser(req);
     if (!user) {
@@ -29,4 +30,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export const DELETE = withApiLogging(handleDelete, 'Remove Paper Bookmark');
 

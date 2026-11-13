@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db/postgres';
 import { hashPassword, generateToken, setAuthCookie } from '@/lib/auth';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     const body = await req.json();
     const { name, email, password } = body;
@@ -52,4 +53,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Internal server error.' }, { status: 500 });
   }
 }
+
+export const POST = withApiLogging(handlePost, 'User Registration (Student)');
 

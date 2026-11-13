@@ -5,8 +5,9 @@ import PaperDocument from '@/database/mongodb/models/PaperDocument';
 import AuthorDocument from '@/database/mongodb/models/AuthorDocument';
 import ResearchAreaDocument from '@/database/mongodb/models/ResearchAreaDocument';
 import CitationDocument from '@/database/mongodb/models/CitationDocument';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function GET(req: NextRequest) {
+async function handleGet(req: NextRequest) {
   try {
     // 1. Relational aggregate counts from PostgreSQL (All 12 Tables)
     const [
@@ -190,3 +191,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export const GET = withApiLogging(handleGet, 'Fetch Dashboard Metrics & Database Counts');

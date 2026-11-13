@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db/postgres';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+async function handleGet(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const paperId = parseInt(params.id, 10);
     if (isNaN(paperId)) {
@@ -108,4 +109,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export const GET = withApiLogging(handleGet, 'Explore Citation Graph (Recursive CTE)');
 

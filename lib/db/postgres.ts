@@ -1,6 +1,7 @@
 import { Pool, PoolClient } from 'pg';
 import path from 'path';
 import fs from 'fs';
+import { logPostgresQuery } from './query-logger';
 
 export interface QueryResult<T = any> {
   rows: T[];
@@ -88,12 +89,33 @@ async function initPglite() {
  */
 export async function exec(sql: string): Promise<any> {
   const engine = await initEngine();
+  const startTime = performance.now();
 
-  if (engine === 'pg' && pgPool) {
-    return await pgPool.query(sql);
-  } else {
-    const pglite = await initPglite();
-    return await pglite.exec(sql);
+  try {
+    let result: any;
+    if (engine === 'pg' && pgPool) {
+      result = await pgPool.query(sql);
+    } else {
+      const pglite = await initPglite();
+      result = await pglite.exec(sql);
+    }
+    const executionTimeMs = performance.now() - startTime;
+    logPostgresQuery({
+      query: sql.length > 500 ? sql.substring(0, 500) + '... [TRUNCATED DDL SCRIPT]' : sql,
+      rowCount: Array.isArray(result) ? result.length : (result?.rowCount ?? 0),
+      executionTimeMs,
+      status: 'SUCCESS',
+    });
+    return result;
+  } catch (err: any) {
+    const executionTimeMs = performance.now() - startTime;
+    logPostgresQuery({
+      query: sql.length > 500 ? sql.substring(0, 500) + '... [TRUNCATED DDL SCRIPT]' : sql,
+      executionTimeMs,
+      status: 'ERROR',
+      error: err.message,
+    });
+    throw err;
   }
 }
 
@@ -120,21 +142,59 @@ export async function query<T = any>(text: string, params?: any[]): Promise<Quer
     return p;
   });
 
-  if (engine === 'pg' && pgPool) {
-    const result = await pgPool.query(text, normalizedParams);
-    return {
-      rows: result.rows,
-      rowCount: result.rowCount ?? result.rows.length,
-      fields: result.fields,
-    };
-  } else {
-    const pglite = await initPglite();
-    const result = await pglite.query(text, normalizedParams);
-    return {
-      rows: (result.rows || []) as T[],
-      rowCount: result.affectedRows ?? result.rows?.length ?? 0,
-      fields: result.fields,
-    };
+  const startTime = performance.now();
+
+  try {
+    if (engine === 'pg' && pgPool) {
+      const result = await pgPool.query(text, normalizedParams);
+      const executionTimeMs = performance.now() - startTime;
+      const rowCount = result.rowCount ?? result.rows.length;
+
+      logPostgresQuery({
+        query: text,
+        params,
+        rowCount,
+        executionTimeMs,
+        status: 'SUCCESS',
+      });
+
+      return {
+        rows: result.rows,
+        rowCount,
+        fields: result.fields,
+      };
+    } else {
+      const pglite = await initPglite();
+      const result = await pglite.query(text, normalizedParams);
+      const executionTimeMs = performance.now() - startTime;
+      const rowCount = result.rows && result.rows.length > 0 
+        ? result.rows.length 
+        : (result.affectedRows ?? result.rowCount ?? 0);
+
+      logPostgresQuery({
+        query: text,
+        params,
+        rowCount,
+        executionTimeMs,
+        status: 'SUCCESS',
+      });
+
+      return {
+        rows: (result.rows || []) as T[],
+        rowCount,
+        fields: result.fields,
+      };
+    }
+  } catch (err: any) {
+    const executionTimeMs = performance.now() - startTime;
+    logPostgresQuery({
+      query: text,
+      params,
+      executionTimeMs,
+      status: 'ERROR',
+      error: err.message,
+    });
+    throw err;
   }
 }
 
@@ -150,12 +210,38 @@ export async function transaction<T>(callback: (client: TransactionClient) => Pr
       await client.query('BEGIN');
       const txClient: TransactionClient = {
         query: async (text: string, params?: any[]) => {
-          const res = await client.query(text, params);
-          return {
-            rows: res.rows,
-            rowCount: res.rowCount ?? res.rows.length,
-            fields: res.fields,
-          };
+          const startTime = performance.now();
+          try {
+            const res = await client.query(text, params);
+            const executionTimeMs = performance.now() - startTime;
+            const rowCount = res.rowCount ?? res.rows.length;
+
+            logPostgresQuery({
+              query: text,
+              params,
+              rowCount,
+              executionTimeMs,
+              status: 'SUCCESS',
+              isTransaction: true,
+            });
+
+            return {
+              rows: res.rows,
+              rowCount,
+              fields: res.fields,
+            };
+          } catch (err: any) {
+            const executionTimeMs = performance.now() - startTime;
+            logPostgresQuery({
+              query: text,
+              params,
+              executionTimeMs,
+              status: 'ERROR',
+              error: err.message,
+              isTransaction: true,
+            });
+            throw err;
+          }
         },
         savepoint: async (name: string) => {
           await client.query(`SAVEPOINT ${name}`);
@@ -182,12 +268,40 @@ export async function transaction<T>(callback: (client: TransactionClient) => Pr
     return await pglite.transaction(async (tx: any) => {
       const txClient: TransactionClient = {
         query: async (text: string, params?: any[]) => {
-          const res = await tx.query(text, params);
-          return {
-            rows: res.rows || [],
-            rowCount: res.affectedRows ?? res.rows?.length ?? 0,
-            fields: res.fields,
-          };
+          const startTime = performance.now();
+          try {
+            const res = await tx.query(text, params);
+            const executionTimeMs = performance.now() - startTime;
+            const rowCount = res.rows && res.rows.length > 0 
+              ? res.rows.length 
+              : (res.affectedRows ?? res.rowCount ?? 0);
+
+            logPostgresQuery({
+              query: text,
+              params,
+              rowCount,
+              executionTimeMs,
+              status: 'SUCCESS',
+              isTransaction: true,
+            });
+
+            return {
+              rows: res.rows || [],
+              rowCount,
+              fields: res.fields,
+            };
+          } catch (err: any) {
+            const executionTimeMs = performance.now() - startTime;
+            logPostgresQuery({
+              query: text,
+              params,
+              executionTimeMs,
+              status: 'ERROR',
+              error: err.message,
+              isTransaction: true,
+            });
+            throw err;
+          }
         },
         savepoint: async (name: string) => {
           await tx.query(`SAVEPOINT ${name}`);

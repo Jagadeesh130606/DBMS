@@ -10,7 +10,9 @@
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
     "test": "tsx scripts/run-tests.ts",
-    "db:init": "tsx scripts/init-db.ts"
+    "db:init": "tsx scripts/init-db.ts",
+    "pg:verify": "tsx scripts/verify-postgres-connection.ts",
+    "pg:migrate": "tsx scripts/migrate-to-postgres.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.12",

@@ -4,8 +4,9 @@ import { connectMongoDB } from '@/lib/db/mongodb';
 import PaperDocument from '@/database/mongodb/models/PaperDocument';
 import { generateEmbedding, formatVectorForPg } from '@/semantic/embedding_service/embedder';
 import { getCurrentUser } from '@/lib/auth';
+import { withApiLogging } from '@/lib/api-handler';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+async function handleGet(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const paperId = parseInt(params.id, 10);
     if (isNaN(paperId)) {
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+async function handlePut(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = getCurrentUser(req);
     if (!user || user.role !== 'ADMIN') {
@@ -169,7 +170,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+async function handleDelete(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = getCurrentUser(req);
     if (!user || user.role !== 'ADMIN') {
@@ -194,4 +195,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export const GET = withApiLogging(handleGet, 'View Research Paper Details');
+export const PUT = withApiLogging(handlePut, 'Update Research Paper (Dual-DB Sync)');
+export const DELETE = withApiLogging(handleDelete, 'Delete Research Paper (Dual-DB Cascade)');
 

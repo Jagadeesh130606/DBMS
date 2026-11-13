@@ -4,6 +4,7 @@ import { connectMongoDB } from '@/lib/db/mongodb';
 import PaperDocument from '@/database/mongodb/models/PaperDocument';
 import CitationDocument from '@/database/mongodb/models/CitationDocument';
 import { generateEmbedding, formatVectorForPg } from '@/semantic/embedding_service/embedder';
+import { withApiLogging } from '@/lib/api-handler';
 
 // Global in-memory demonstration state for the interactive tour
 let demoPaperState = {
@@ -25,7 +26,7 @@ export async function GET() {
   });
 }
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   const startTime = Date.now();
   try {
     const body = await req.json();
@@ -299,4 +300,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export const POST = withApiLogging(handlePost, 'Interactive Dual-DB CRUD Simulation');
 

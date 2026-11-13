@@ -70,7 +70,10 @@ export default function AdminPapersPage() {
 
       const res = await fetch('/api/papers', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-action-name': 'Add Research Paper (Admin Dashboard)'
+        },
         body: JSON.stringify({
           title: formTitle,
           abstract: formAbstract,
@@ -114,7 +117,10 @@ export default function AdminPapersPage() {
     }
 
     try {
-      const res = await fetch(`/api/papers/${paperId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/papers/${paperId}`, { 
+        method: 'DELETE',
+        headers: { 'x-action-name': `Delete Research Paper #${paperId} (Dual-DB Cascade)` }
+      });
       if (res.ok) {
         setPapers((prev) => prev.filter((p) => p.paper_id !== paperId));
         setSuccessMsg(`Paper #${paperId} successfully deleted across both databases.`);

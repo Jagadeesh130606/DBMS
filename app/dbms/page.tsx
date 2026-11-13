@@ -29,7 +29,7 @@ import {
 import { DBMS_DEMO_QUERIES, DbmsQueryDemo } from '@/lib/dbms-queries';
 
 export default function DbmsConceptsPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'sql' | 'pipelines' | 'crud'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'sql' | 'pipelines' | 'crud' | 'activity'>('overview');
 
   // Overview State
   const [overviewData, setOverviewData] = useState<any>(null);
@@ -57,6 +57,47 @@ export default function DbmsConceptsPage() {
   const [crudState, setCrudState] = useState<any>(null);
   const [crudActionLoading, setCrudActionLoading] = useState<boolean>(false);
   const [crudResult, setCrudResult] = useState<any>(null);
+
+  // Live Query Monitor State (PowerShell Terminal Mirror)
+  const [liveQueries, setLiveQueries] = useState<any[]>([]);
+  const [liveDbFilter, setLiveDbFilter] = useState<'all' | 'PostgreSQL' | 'MongoDB'>('all');
+  const [liveAutoRefresh, setLiveAutoRefresh] = useState<boolean>(true);
+  const [liveStats, setLiveStats] = useState<{ totalCaptured: number; pgCount: number; mongoCount: number }>({
+    totalCaptured: 0,
+    pgCount: 0,
+    mongoCount: 0,
+  });
+
+  const fetchLiveQueries = () => {
+    fetch(`/api/dbms/live-queries?limit=60&filter=${liveDbFilter}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setLiveQueries(data.queries || []);
+          if (data.stats) setLiveStats(data.stats);
+        }
+      })
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'activity') {
+      fetchLiveQueries();
+      if (!liveAutoRefresh) return;
+      const interval = setInterval(fetchLiveQueries, 1500);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, liveDbFilter, liveAutoRefresh]);
+
+  const clearLiveQueries = async () => {
+    await fetch('/api/dbms/live-queries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clear' }),
+    });
+    setLiveQueries([]);
+    setLiveStats({ totalCaptured: 0, pgCount: 0, mongoCount: 0 });
+  };
 
   // Fetch overview data
   const loadOverview = () => {
@@ -263,6 +304,18 @@ export default function DbmsConceptsPage() {
         >
           <Zap className="w-4 h-4 text-amber-500" />
           <span>5. Interactive Dual-DB CRUD Demonstrator</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('activity')}
+          className={`flex items-center space-x-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 whitespace-nowrap transition ${
+            activeTab === 'activity'
+              ? 'border-emerald-600 text-emerald-600'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+          }`}
+        >
+          <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
+          <span>6. Live Database Activity (Terminal Monitor)</span>
         </button>
       </div>
 
@@ -872,6 +925,215 @@ export default function DbmsConceptsPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 6: LIVE DATABASE QUERY ACTIVITY (POWERSHELL TERMINAL MIRROR)          */}
+      {/* ========================================================================= */}
+      {activeTab === 'activity' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-6 shadow-xl border border-slate-700/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <span className="flex h-3 w-3 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <h2 className="text-lg font-bold">Live Database Query Monitor</h2>
+                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-mono px-2 py-0.5 rounded font-bold border border-emerald-500/30">
+                  REAL BACKEND STREAM
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                Every frontend click executes real parameterized SQL on PostgreSQL and document operations on MongoDB.
+                Look at your backend <strong>PowerShell terminal</strong> where <code className="bg-slate-800 px-1 py-0.5 rounded text-emerald-400">npm.cmd run dev</code> is running to see full structured logs in real time!
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setLiveAutoRefresh(!liveAutoRefresh)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition ${
+                  liveAutoRefresh
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                <Activity className={`w-3.5 h-3.5 ${liveAutoRefresh ? 'animate-pulse' : ''}`} />
+                <span>{liveAutoRefresh ? 'Streaming ON (1.5s)' : 'Streaming Paused'}</span>
+              </button>
+
+              <button
+                onClick={fetchLiveQueries}
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition"
+                title="Refresh Queries"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={clearLiveQueries}
+                className="px-3 py-1.5 bg-rose-900/60 hover:bg-rose-800/80 text-rose-200 border border-rose-700/50 rounded-lg text-xs font-medium transition"
+              >
+                Clear Log
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Bar & Quick Stats */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-bold text-slate-500 uppercase mr-1">Filter Engine:</span>
+              <button
+                onClick={() => setLiveDbFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  liveDbFilter === 'all'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                All Operations ({liveStats.totalCaptured})
+              </button>
+              <button
+                onClick={() => setLiveDbFilter('PostgreSQL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  liveDbFilter === 'PostgreSQL'
+                    ? 'bg-cyan-700 text-white shadow-sm'
+                    : 'bg-cyan-50 text-cyan-800 hover:bg-cyan-100'
+                }`}
+              >
+                PostgreSQL ({liveStats.pgCount})
+              </button>
+              <button
+                onClick={() => setLiveDbFilter('MongoDB')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  liveDbFilter === 'MongoDB'
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                }`}
+              >
+                MongoDB ({liveStats.mongoCount})
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-500 flex items-center space-x-3">
+              <span>Showing last <strong>{liveQueries.length}</strong> real-time operations</span>
+            </div>
+          </div>
+
+          {/* Query Stream Feed */}
+          <div className="space-y-3">
+            {liveQueries.length > 0 ? (
+              liveQueries.map((q) => (
+                <div
+                  key={q.id}
+                  className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition space-y-3"
+                >
+                  {/* Top Metadata Row */}
+                  <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                          q.dbType === 'PostgreSQL'
+                            ? 'bg-cyan-100 text-cyan-900 border border-cyan-300'
+                            : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                        }`}
+                      >
+                        {q.dbType}
+                      </span>
+
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-800">
+                        {q.operation}
+                      </span>
+
+                      <span className="text-xs font-bold text-slate-800 font-mono">
+                        {q.target}
+                      </span>
+
+                      {q.action && (
+                        <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          {q.action}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-3 text-[11px] font-mono text-slate-500">
+                      {q.requestId && (
+                        <span className="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          {q.requestId}
+                        </span>
+                      )}
+                      <span className="font-semibold text-slate-700">{q.executionTimeMs} ms</span>
+                      <span
+                        className={`font-bold px-1.5 py-0.5 rounded ${
+                          q.status === 'SUCCESS' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
+                        }`}
+                      >
+                        {q.status}
+                      </span>
+                      <span>{q.timestamp}</span>
+                    </div>
+                  </div>
+
+                  {/* Executed Query / Operation Payload */}
+                  <div className="bg-slate-900 text-slate-100 rounded-lg p-3 font-mono text-xs overflow-x-auto">
+                    <pre className="whitespace-pre-wrap leading-relaxed text-[11px] text-emerald-300">
+                      {q.query}
+                    </pre>
+                  </div>
+
+                  {/* Parameters / Count Row */}
+                  {(q.parameters || q.rowCount !== undefined) && (
+                    <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-600 font-mono bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-100">
+                      <div>
+                        {q.parameters && (
+                          <span>
+                            <strong className="text-slate-700">Params:</strong>{' '}
+                            {typeof q.parameters === 'object'
+                              ? JSON.stringify(q.parameters).slice(0, 150)
+                              : String(q.parameters)}
+                          </span>
+                        )}
+                      </div>
+                      {q.rowCount !== undefined && (
+                        <span className="font-semibold text-slate-700">
+                          Records: <span className="text-blue-700 font-bold">{q.rowCount}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center space-y-4">
+                <div className="inline-flex p-4 bg-emerald-50 text-emerald-600 rounded-2xl">
+                  <Activity className="w-8 h-8 animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-slate-900">Live Database Activity Stream Ready</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    Interact with any frontend button (search, add paper, view paper, bookmarks, or SQL workbench) to watch the actual database queries appear live here and in your PowerShell terminal!
+                  </p>
+                </div>
+                <div className="pt-2 flex justify-center space-x-3">
+                  <button
+                    onClick={() => setActiveTab('sql')}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                  >
+                    Go to SQL Workbench
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('crud')}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                  >
+                    Try Dual-DB CRUD
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
