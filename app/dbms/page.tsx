@@ -1078,6 +1078,32 @@ export default function DbmsConceptsPage() {
                     </div>
                   </div>
 
+                  {/* Semantic Vector Context Block (when available) */}
+                  {q.semanticContext && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-purple-900 space-y-1.5 font-mono">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200 pb-1">
+                        <span className="font-bold text-purple-800 flex items-center space-x-1.5">
+                          <span>✨ Semantic Vector Search Context</span>
+                        </span>
+                        <span className="bg-purple-200/80 text-purple-900 text-[10px] font-bold px-2 py-0.5 rounded">
+                          Dimension: {q.semanticContext.dimension}
+                        </span>
+                      </div>
+                      <div className="text-[11px]">
+                        <strong className="text-purple-700">Original Input:</strong>{' '}
+                        <span className="text-slate-900 bg-white px-1.5 py-0.5 rounded border border-purple-200 font-sans font-medium">
+                          &quot;{q.semanticContext.originalQuery}&quot;
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-purple-800">
+                        <strong className="text-purple-700">Embedding Preview (First 5):</strong>{' '}
+                        <span className="text-purple-950 font-mono">
+                          [{q.semanticContext.embeddingPreview?.join(', ')}, ...]
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Executed Query / Operation Payload */}
                   <div className="bg-slate-900 text-slate-100 rounded-lg p-3 font-mono text-xs overflow-x-auto">
                     <pre className="whitespace-pre-wrap leading-relaxed text-[11px] text-emerald-300">

@@ -3,12 +3,13 @@ import { query } from '@/lib/db/postgres';
 import { generateEmbedding, formatVectorForPg } from '@/semantic/embedding_service/embedder';
 import { getCurrentUser } from '@/lib/auth';
 import { withApiLogging } from '@/lib/api-handler';
+import { setSemanticContext } from '@/lib/db/query-logger';
 
 async function handlePost(req: NextRequest) {
   try {
     const body = await req.json();
     const q = body.query || body.q || '';
-    const limit = Math.max(1, Math.min(50, parseInt(body.topK || body.limit || '10', 10)));
+    const limit = Math.max(1, Math.min(50, parseInt(body.topK || body.limit || '15', 10)));
 
     if (!q.trim()) {
       return NextResponse.json({ results: [], query: '', total: 0 });
@@ -19,6 +20,11 @@ async function handlePost(req: NextRequest) {
 
     // 1. Generate dense vector using all-MiniLM-L6-v2 embedding model
     const vector = await generateEmbedding(cleanQuery);
+    setSemanticContext({
+      originalQuery: cleanQuery,
+      dimension: 384,
+      vector,
+    });
     const vectorStr = formatVectorForPg(vector);
 
     // 2. Query pgvector using cosine distance (<=>)
@@ -75,7 +81,7 @@ async function handlePost(req: NextRequest) {
 async function handleGet(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get('q') || '';
-  const topK = searchParams.get('topK') || '10';
+  const topK = searchParams.get('topK') || '15';
 
   return handlePost(new NextRequest(req.url, {
     method: 'POST',

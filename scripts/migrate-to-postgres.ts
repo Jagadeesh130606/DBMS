@@ -169,3 +169,4 @@ migratePgLiteToPostgres().catch((err) => {
   console.error('[Migration Error]:', err);
   process.exit(1);
 });
+

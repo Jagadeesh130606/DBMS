@@ -10,7 +10,7 @@ function SemanticSearchContent() {
   const initialQuery = searchParams.get('q') || '';
 
   const [queryText, setQueryText] = useState(initialQuery);
-  const [topK, setTopK] = useState('10');
+  const [topK, setTopK] = useState('15');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);

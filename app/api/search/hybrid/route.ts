@@ -3,6 +3,7 @@ import { query } from '@/lib/db/postgres';
 import { generateEmbedding, formatVectorForPg } from '@/semantic/embedding_service/embedder';
 import { getCurrentUser } from '@/lib/auth';
 import { withApiLogging } from '@/lib/api-handler';
+import { setSemanticContext } from '@/lib/db/query-logger';
 
 async function handlePost(req: NextRequest) {
   try {
@@ -50,6 +51,11 @@ async function handlePost(req: NextRequest) {
 
     // 2. Run Semantic Vector Query
     const vector = await generateEmbedding(cleanQuery);
+    setSemanticContext({
+      originalQuery: cleanQuery,
+      dimension: 384,
+      vector,
+    });
     const vectorStr = formatVectorForPg(vector);
 
     const semanticSql = `

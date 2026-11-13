@@ -1,11 +1,18 @@
 import { AsyncLocalStorage } from 'async_hooks';
 
+export interface SemanticSearchContext {
+  originalQuery: string;
+  dimension: number;
+  embeddingPreview: number[]; // first 5 values only
+}
+
 export interface RequestContext {
   requestId: string;
   action: string;
   path: string;
   method: string;
   startTime: number;
+  semanticContext?: SemanticSearchContext;
 }
 
 export interface LiveQueryEvent {
@@ -22,6 +29,7 @@ export interface LiveQueryEvent {
   executionTimeMs: number;
   requestId?: string;
   action?: string;
+  semanticContext?: SemanticSearchContext;
 }
 
 // Global AsyncLocalStorage so all database operations can access the active request context
@@ -97,6 +105,7 @@ export function parseSqlInfo(sql: string): { operation: string; table: string } 
 
 /**
  * Mask sensitive parameters (passwords, auth tokens, hashes)
+ * and shorten high-dimensional vectors to first 5 values only
  */
 export function maskSensitiveParams(params?: any[]): any[] | undefined {
   if (!params || params.length === 0) return params;
@@ -111,13 +120,46 @@ export function maskSensitiveParams(params?: any[]): any[] | undefined {
       if (/^eyJ[A-Za-z0-9-_]+\.eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(val)) {
         return '[PROTECTED_JWT_TOKEN]';
       }
-      // Vector array string check - shorten for readability
+      // Vector array string check - shorten to first 5 values only
       if (val.startsWith('[') && val.endsWith(']') && val.length > 50) {
-        return `[384-D dense vector embedding (${val.substring(0, 24)}...)]`;
+        const inner = val.slice(1, -1);
+        const parts = inner
+          .split(',')
+          .slice(0, 5)
+          .map((s) => {
+            const num = parseFloat(s.trim());
+            return isNaN(num) ? s.trim() : Number(num.toFixed(4));
+          });
+        return `[384-D Vector preview: [${parts.join(', ')}, ...]]`;
       }
+    }
+    if (Array.isArray(val) && val.length > 5 && typeof val[0] === 'number') {
+      const parts = val.slice(0, 5).map((v) => Number(v.toFixed(4)));
+      return `[384-D Vector preview: [${parts.join(', ')}, ...]]`;
     }
     return val;
   });
+}
+
+/**
+ * Associate semantic search context (original search input, dimension, preview)
+ * with the active request ID in AsyncLocalStorage
+ */
+export function setSemanticContext(ctx: {
+  originalQuery: string;
+  dimension?: number;
+  vector: number[] | Float32Array;
+}) {
+  const store = requestContextStorage.getStore();
+  if (store) {
+    const arr = Array.from(ctx.vector);
+    const first5 = arr.slice(0, 5).map((n) => Number(n.toFixed(4)));
+    store.semanticContext = {
+      originalQuery: ctx.originalQuery,
+      dimension: ctx.dimension || arr.length || 384,
+      embeddingPreview: first5,
+    };
+  }
 }
 
 /**
@@ -193,6 +235,7 @@ export function logPostgresQuery(input: PostgresLogInput) {
     executionTimeMs: Number(duration),
     requestId: context?.requestId,
     action: context?.action,
+    semanticContext: context?.semanticContext,
   };
 
   ringBuffer.unshift(event);
@@ -204,7 +247,11 @@ export function logPostgresQuery(input: PostgresLogInput) {
   console.log(
     `\n${CYAN}================================================================================${RESET}`
   );
-  console.log(`${CYAN}${BOLD}POSTGRESQL QUERY EXECUTED${RESET}${input.isTransaction ? ` ${YELLOW}[TRANSACTION]${RESET}` : ''}`);
+  if (context?.semanticContext) {
+    console.log(`${CYAN}${BOLD}POSTGRESQL QUERY EXECUTED [SEMANTIC VECTOR SEARCH]${RESET}`);
+  } else {
+    console.log(`${CYAN}${BOLD}POSTGRESQL QUERY EXECUTED${RESET}${input.isTransaction ? ` ${YELLOW}[TRANSACTION]${RESET}` : ''}`);
+  }
   console.log(`${CYAN}================================================================================${RESET}`);
   console.log(`${GRAY}Time:${RESET}           ${time}`);
   if (context) {
@@ -213,6 +260,12 @@ export function logPostgresQuery(input: PostgresLogInput) {
   }
   console.log(`${GRAY}Operation:${RESET}      ${BOLD}${CYAN}${operation}${RESET}`);
   console.log(`${GRAY}Table:${RESET}          ${BOLD}${table}${RESET}`);
+  if (context?.semanticContext) {
+    console.log(`${MAGENTA}${BOLD}Semantic Vector Context:${RESET}`);
+    console.log(`  ${GRAY}Original User Input:${RESET}  "${CYAN}${BOLD}${context.semanticContext.originalQuery}${RESET}"`);
+    console.log(`  ${GRAY}Embedding Dimension:${RESET}  ${BOLD}${context.semanticContext.dimension}${RESET}`);
+    console.log(`  ${GRAY}Embedding Preview:${RESET}    [${context.semanticContext.embeddingPreview.join(', ')}, ...]`);
+  }
   console.log(`${GRAY}Query:${RESET}`);
   console.log(`${BOLD}${input.query.trim()}${RESET}`);
 
@@ -361,3 +414,4 @@ export function getLiveQueryHistory(limit = 50, dbFilter?: 'all' | 'PostgreSQL' 
 export function clearLiveQueryHistory() {
   ringBuffer.length = 0;
 }
+
